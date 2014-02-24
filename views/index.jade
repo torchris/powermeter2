@@ -1,0 +1,23 @@
+extends layout
+
+block content    
+    h1= title
+    #tablediv
+      table
+       thead
+         tr 
+           td 
+             b Timestamp
+           td
+             b Temperature
+           td
+             b Power usage
+         tbody
+             each reading in readings
+               tr
+                 td #{reading.time}
+                 td #{reading.temp2}
+                 td #{reading.usage2}
+    h2 Graph over time
+    br
+    #placeholder(style='width:700px;height:300px')
