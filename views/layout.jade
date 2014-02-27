@@ -14,9 +14,9 @@ html
            var temp_data = [];
            var usage_data = [];
            var reading_data = !{JSON.stringify(readings)};
-           for (var i = 0; i < 15; i++)
+           for (var i = 0; i < #{sampleNum}; i++)
              temp_data.push([new Date(reading_data[i].time), reading_data[i].temp2]);
-           for (var i = 0; i < 15; i++)
+           for (var i = 0; i < #{sampleNum}; i++)
              usage_data.push([new Date(reading_data[i].time), reading_data[i].usage2]);
            $.plot($("#placeholder"), [{
                label: "Temperature (C)",
@@ -31,7 +31,7 @@ html
                  timeformat: "%H:%M",
                  timezone: "browser"
                }],
-               yaxes: [{},{}]
+               yaxes: [{},{position: "right"}]
               });
             });
 

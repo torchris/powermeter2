@@ -17,6 +17,8 @@ var usage;
 var temp;
 var readings;
 
+process.env['SAMPLES'] = '15';
+
 mongoose.connect('tingodb://readingsdb', function (err){
     if (!err) {
         console.log('connected to databse');
@@ -81,11 +83,17 @@ if ('development' == app.get('env')) {
   app.use(express.errorHandler());
 }
 
+app.post('/', function(req, res){
+    process.env['SAMPLES'] = req.param("samples");
+    console.log(process.env.SAMPLES);
+    });
+
 app.get('/', function(req, res){
-  Readings.find({}, {}, { sort: { 'time' : -1}, limit: 15 }, function(err, readings) {
+  Readings.find({}, {}, { sort: { 'time' : -1}, limit: process.env.SAMPLES }, function(err, readings) {
     if (err) return console.error(err);
       res.render('index', 
-        { title: 'Power Usage', 
+        { title: 'Power Usage',
+          sampleNum: process.env.SAMPLES,
           readings: readings
               });
            }

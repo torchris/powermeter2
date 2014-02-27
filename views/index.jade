@@ -18,6 +18,11 @@ block content
                  td #{reading.time}
                  td #{reading.temp2}
                  td #{reading.usage2}
+                 
     h2 Graph over time
     br
     #placeholder(style='width:700px;height:300px')
+    
+    form#dataSamples(name="dataSamples",method="post",action="/")
+        input#setSamplesInput(type="text", placeholder="samples", name="samples")
+        button#btnSubmit(type="submit") submit
