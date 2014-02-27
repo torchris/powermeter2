@@ -18,6 +18,7 @@ var temp;
 var readings;
 
 process.env['SAMPLES'] = '15';
+process.env['REFRESHINT'] = '120';
 
 mongoose.connect('tingodb://readingsdb', function (err){
     if (!err) {
@@ -58,7 +59,7 @@ function getData (){
               if (err) return console.error(err);
             console.dir(readingInfo);
             });
-        setTimeout(getData,120000);
+        setTimeout(getData,(process.env.REFRESHINT * 1000));
         }});
 }
 
@@ -85,14 +86,27 @@ if ('development' == app.get('env')) {
 
 app.post('/', function(req, res){
     process.env['SAMPLES'] = req.param("samples");
-    console.log(process.env.SAMPLES);
-    });
+    process.env['REFRESHINT'] = req.param("interval");
+    console.log('Samples is set to:  ' + process.env.SAMPLES);
+    console.log('Refresh is set to:  ' + process.env.REFRESHINT);    
+      Readings.find({}, {}, { sort: { 'time' : -1}, limit: process.env.SAMPLES }, function(err, readings) {
+    if (err) return console.error(err);
+      res.render('index', 
+        { title: 'Power Usage and Temp from PowerCost Monitor',
+          refreshRate: process.env.REFRESHINT,
+          sampleNum: process.env.SAMPLES,
+          readings: readings
+              });
+           }
+          );
+       });
 
 app.get('/', function(req, res){
   Readings.find({}, {}, { sort: { 'time' : -1}, limit: process.env.SAMPLES }, function(err, readings) {
     if (err) return console.error(err);
       res.render('index', 
-        { title: 'Power Usage',
+        { title: 'Power Usage and Temp from PowerCost Monitor',
+          refreshRate: process.env.REFRESHINT,
           sampleNum: process.env.SAMPLES,
           readings: readings
               });

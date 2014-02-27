@@ -2,6 +2,12 @@ extends layout
 
 block content    
     h1= title
+    
+    h2 Graph over time
+    br
+    #placeholder(style='width:700px;height:300px')
+    
+    h2 Table of results
     #tablediv
       table
        thead
@@ -18,13 +24,15 @@ block content
                  td #{reading.time}
                  td #{reading.temp2}
                  td #{reading.usage2}
-                 
-    h2 Graph over time
-    br
-    #placeholder(style='width:700px;height:300px')
-    
+
+    h2 Settings
     form#dataSamples(name="dataSamples",method="post",action="/")
-        input#setSamplesInput(type="text", placeholder="samples", name="samples")
+        label(for "samples") Data samples to graph:
+        input#setSamplesInput(type="text", placeholder="samples", name="samples", value="#{sampleNum}")
+        br
+        label(for "interval") Time between refreshes (seconds):       
+        input#setIntervalInput(type="text",placeholder="interval", name="interval", value="#{refreshRate}")
+        br
         button#btnSubmit(type="submit") submit
         
     script(src='jquery/dist/cdn/jquery-2.1.0.js')
