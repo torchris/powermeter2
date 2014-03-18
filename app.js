@@ -15,6 +15,8 @@ var Engine = require('tingodb');
 var mongoose = require('mongoose');
 var request = require("request");
 
+var app = express();
+
 //Initialize Mongoose with Tingo
 var db = mongoose.connect('tingodb://readingsdb');
 
@@ -24,7 +26,7 @@ var temp;
 var readings;
 
 //Set environment variables for defaults
-process.env['SAMPLES'] = '15';
+process.env['SAMPLES'] = '5';
 process.env['REFRESHINT'] = '120';
 
 
@@ -82,7 +84,7 @@ getData();
 var app = express();
 
 // all environments
-app.set('port', process.env.PORT || 3008);
+//app.set('port', process.env.PORT || 3008);
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 app.use(express.favicon());
@@ -118,18 +120,27 @@ app.post('/', function(req, res){
 
 //This serves up the page and renders the variables into the Jade template engine.
 app.get('/', function(req, res){
-  Readings.find({}, {}, { sort: { 'time' : -1}, limit: process.env.SAMPLES }, function(err, readings) {
-    if (err) return console.error(err);
       res.render('index', 
         { title: 'Power Usage and Temp from PowerCost Monitor',
           refreshRate: process.env.REFRESHINT,
-          sampleNum: process.env.SAMPLES,
-          readings: readings
+          sampleNum: process.env.SAMPLES
               });
            }
           );
-       }
-    );
+
+
+var server = app.listen(3008);
+var io = require('socket.io').listen(server);
+
+io.sockets.on('connection', function (socket) {
+    console.log('A new user connected!');
+        setInterval(function(){
+            Readings.find({}, {}, { sort: { 'time' : -1}, limit: process.env.SAMPLES }, function(err, readings) {
+                socket.emit('readingsData', readings);
+                console.log (readings);
+            });
+        }, process.env.REFRESHINT * 1000);
+    });
 
 //Start up the server!
 http.createServer(app).listen(app.get('port'), function(){

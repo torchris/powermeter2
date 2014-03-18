@@ -3,7 +3,41 @@ html
   head
       title= title
       link(rel='stylesheet', href='/stylesheets/style.css')
-      meta(http-equiv="refresh" content="#{refreshRate}" ) 
+      script(src='jquery/dist/cdn/jquery-2.1.0.js')
+      script(src='flot/jquery.flot.js')
+      script(src='flot/jquery.flot.time.js')
+      script(src="/socket.io/socket.io.js")  
+      script.
+        var socket = io.connect();   
+        socket.on('readingsData', function (readingsData) {
+          var temp_data = [];  
+          var usage_data = [];  
+          console.log("Socket Connected");
+          console.log(readingsData);
+          $('#currTime').html(readingsData[0].time);
+          $('#currTemp').html(readingsData[0].temp2);
+          $('#currUsage').html(readingsData[0].usage2);
+          console.log('length of readingData = ' + readingsData.length)
+          for (var i = 0; i < readingsData.length; i++)  
+            temp_data.push([new Date(readingsData[i].time), readingsData[i].temp2]);  
+          for (var i = 0; i < readingsData.length; i++)  
+            usage_data.push([new Date(readingsData[i].time), readingsData[i].usage2]);
+         $.plot($("#placeholder"), [{  
+            label: "Temperature (C)",  
+            data: temp_data,   
+             },{  
+             label: "Power Usage (KW)",  
+             data: usage_data,  
+             yaxis: 2  
+             }], {  
+             xaxes: [{  
+             mode: "time",  
+             timeformat: "%H:%M",  
+             timezone: "browser"  
+             }],  
+              yaxes: [{},{position: "right"}]  
+            });  
+         });
 
   body
   
