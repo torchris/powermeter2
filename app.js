@@ -14,8 +14,10 @@ var tungus = require('tungus');
 var Engine = require('tingodb');
 var mongoose = require('mongoose');
 var request = require("request");
-
 var app = express();
+
+var server = require('http').createServer(app);
+
 
 //Initialize Mongoose with Tingo
 var db = mongoose.connect('tingodb://readingsdb');
@@ -26,9 +28,10 @@ var temp;
 var readings;
 
 //Set environment variables for defaults
-process.env['SAMPLES'] = '5';
-process.env['REFRESHINT'] = '120';
-
+process.env.SAMPLES = '25';
+console.log('Samples = ' + process.env.SAMPLES);
+process.env.REFRESHINT = '60';
+console.log('Refresh = ' + process.env.REFRESHINT);
 
 //Mongoose connects to database
 mongoose.connect('tingodb://readingsdb', function (err){
@@ -81,7 +84,7 @@ function getData (){
 getData();
 
 //Below are all set by default in Express
-var app = express();
+//var app = express();
 
 // all environments
 //app.set('port', process.env.PORT || 3008);
@@ -95,28 +98,14 @@ app.use(express.methodOverride());
 app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
 
+var io = require('socket.io').listen(server);
+app.set('port', process.env.PORT || 3008);
+io.set('log level', 1);
+
 // development only
 if ('development' == app.get('env')) {
   app.use(express.errorHandler());
 }
-
-//When the Submit button is pressed, it runs this function and re-renders the page
-app.post('/', function(req, res){
-    process.env['SAMPLES'] = req.param("samples");
-    process.env['REFRESHINT'] = req.param("interval");
-    console.log('Samples is set to:  ' + process.env.SAMPLES);
-    console.log('Refresh is set to:  ' + process.env.REFRESHINT);    
-      Readings.find({}, {}, { sort: { 'time' : -1}, limit: process.env.SAMPLES }, function(err, readings) {
-    if (err) return console.error(err);
-      res.render('index', 
-        { title: 'Power Usage and Temp from PowerCost Monitor',
-          refreshRate: process.env.REFRESHINT,
-          sampleNum: process.env.SAMPLES,
-          readings: readings
-              });
-           }
-          );
-       });
 
 //This serves up the page and renders the variables into the Jade template engine.
 app.get('/', function(req, res){
@@ -128,21 +117,35 @@ app.get('/', function(req, res){
            }
           );
 
-
-var server = app.listen(3008);
-var io = require('socket.io').listen(server);
-
 io.sockets.on('connection', function (socket) {
     console.log('A new user connected!');
-        setInterval(function(){
-            Readings.find({}, {}, { sort: { 'time' : -1}, limit: process.env.SAMPLES }, function(err, readings) {
-                socket.emit('readingsData', readings);
-                console.log (readings);
-            });
-        }, process.env.REFRESHINT * 1000);
-    });
+    Readings.find({}, {}, { sort: { 'time' : -1}, limit: process.env.SAMPLES }, function(err, readings) {
+      socket.emit('readingsData', readings);
+          console.log ('Initial data over to broswer.');               
+            });    
+        socket.on('sampleInput', function(sampleInputSetting){
+            console.log('setting data = ' + sampleInputSetting);
+            process.env.SAMPLES = sampleInputSetting;
+        });
+         socket.on('refreshInput', function(refreshInputSetting){
+            console.log('setting data = ' + refreshInputSetting);
+            process.env.REFRESHINT = refreshInputSetting;
+        });  
+        setInterval (function (){
+             Readings.find({}, {}, { sort: { 'time' : -1}, limit: process.env.SAMPLES }, function(err, readings) {
+              socket.emit('readingsData', readings);
+              console.log (process.env.SAMPLES + ' readings sent over');  
+                 });
+             }, (process.env.REFRESHINT * 1000));
+         });
 
-//Start up the server!
-http.createServer(app).listen(app.get('port'), function(){
+
+
+server.listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
 });
+
+//Start up the server!
+//http.createServer(app).listen(app.get('port'), function(){
+//  console.log('Express server listening on port ' + app.get('port'));
+//});

@@ -1,26 +1,46 @@
+var socket = io.connect();
+
 $(document).ready(function() {
-	if (window.console) console.log("Hey, I'm executing here!");
-    var readings;
-	var temp_data = [];
-	var usage_data = [];
-	var reading_data = !{
-		JSON.stringify(readings)
-	};
-	for (var i = 0; i < 15; i++)
-	temp_data.push([new Date(reading_data[i].time), reading_data[i].temp2]);
-	for (var i = 0; i < 15; i++)
-	usage_data.push([new Date(reading_data[i].time), reading_data[i].usage2]);
-	$.plot($("#placeholder"), [{
-		label: "Temperature (C)",
-		data: temp_data
-	}, {
-		label: "Power Usage (KW)",
-		data: usage_data
-	}], {
-		xaxis: {
-			mode: "time",
-			timeformat: "%H:%M",
-			timezone: "browser"
+    console.log('Doc loaded');
+    
+    socket.on('readingsData', function(readingsData) {
+        console.log("Socket Connected");
+        console.log('refresh rate set to:  ' + document.getElementById("refreshTimeInput").value);
+		console.log(readingsData);
+		$('#submitBtn').click(function() {
+			var sampleInput = document.getElementById("dataSampleInput").value;
+			console.log(sampleInput);
+			var refreshInput = document.getElementById("refreshTimeInput").value;
+			console.log(refreshInput);
+			socket.emit('sampleInput', sampleInput);
+			socket.emit('refreshInput', refreshInput);
+		});
+		var temp_data = [];
+		var usage_data = [];
+		$('#currTime').html(readingsData[0].time);
+		$('#currTemp').html(readingsData[0].temp2);
+		$('#currUsage').html(readingsData[0].usage2);
+		console.log('length of readingData = ' + readingsData.length);
+		for (var i = 0; i < readingsData.length; i++) {
+			temp_data.push([new Date(readingsData[i].time), readingsData[i].temp2]);
+			usage_data.push([new Date(readingsData[i].time), readingsData[i].usage2]);
 		}
+		$.plot($("#placeholder"), [{
+			label: "Temperature (C)",
+			data: temp_data
+		}, {
+			label: "Power Usage (KW)",
+			data: usage_data,
+			yaxis: 2
+		}], {
+			xaxes: [{
+				mode: "time",
+				timeformat: "%H:%M",
+				timezone: "browser"
+			}],
+			yaxes: [{}, {
+				position: "right"
+			}]
+		});
 	});
 });

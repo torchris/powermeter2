@@ -27,11 +27,10 @@ block content
              td
                #currUsage
     h2 Settings
-    form#dataSamples(name="dataSamples",method="post",action="/")
-        label(for "samples") Data samples to graph:
-        input#setSamplesInput(type="text", placeholder="samples", name="samples", value="#{sampleNum}")
-        br
-        label(for "interval") Time between refreshes (seconds):       
-        input#setIntervalInput(type="text",placeholder="interval", name="interval", value="#{refreshRate}")
-        br
-        button#btnSubmit(type="submit") submit
+    p Data samples to graph: 
+       input#dataSampleInput(value= '#{sampleNum}', type='text')
+    p Time between refreshes (seconds)
+       input#refreshTimeInput(value= '#{refreshRate}', type='text')
+    br
+    button#submitBtn send
+
