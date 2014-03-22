@@ -117,29 +117,41 @@ app.get('/', function(req, res){
            }
           );
 
-io.sockets.on('connection', function (socket) {
-    console.log('A new user connected!');
-    Readings.find({}, {}, { sort: { 'time' : -1}, limit: process.env.SAMPLES }, function(err, readings) {
-      socket.emit('readingsData', readings);
-          console.log ('Initial data over to broswer.');               
-            });    
-        socket.on('sampleInput', function(sampleInputSetting){
-            console.log('setting data = ' + sampleInputSetting);
-            process.env.SAMPLES = sampleInputSetting;
-        });
-         socket.on('refreshInput', function(refreshInputSetting){
-            console.log('setting data = ' + refreshInputSetting);
-            process.env.REFRESHINT = refreshInputSetting;
-        });  
-        setInterval (function (){
-             Readings.find({}, {}, { sort: { 'time' : -1}, limit: process.env.SAMPLES }, function(err, readings) {
-              socket.emit('readingsData', readings);
-              console.log (process.env.SAMPLES + ' readings sent over');  
-                 });
-             }, (process.env.REFRESHINT * 1000));
-         });
-
-
+io.sockets.on('connection', function(socket) {
+	console.log('A new user connected!');
+	Readings.find({}, {}, {
+		sort: {
+			'time': -1
+		},
+		limit: process.env.SAMPLES
+	}, function(err, readings) {
+		socket.emit('readingsData', readings);
+		console.log('Initial data over to browser.');
+	});
+	socket.on('sampleInput', function(sampleInputSetting) {
+		console.log('setting data = ' + sampleInputSetting);
+		process.env.SAMPLES = sampleInputSetting;
+        socket.broadcast.emit('sampleSetting', sampleInputSetting);
+        console.log('Sending sample rate back out');
+	});
+	socket.on('refreshInput', function(refreshInputSetting) {
+		console.log('setting data = ' + refreshInputSetting);
+		process.env.REFRESHINT = refreshInputSetting;
+        socket.broadcast.emit('refreshSetting', refreshInputSetting);
+        console.log('Sending refresh rate back out');
+	});
+    setInterval(function() {
+			Readings.find({}, {}, {
+				sort: {
+					'time': -1
+				},
+				limit: process.env.SAMPLES
+			}, function(err, readings) {
+				socket.broadcast.emit('readingsData', readings);
+				console.log(process.env.SAMPLES + ' readings sent over');
+			});
+		}, (process.env.REFRESHINT * 1000));
+    });
 
 server.listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
