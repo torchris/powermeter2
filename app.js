@@ -1,9 +1,3 @@
-
-/**
- * Module dependencies.
- */
-
-
 //Load Dependencies
 var express = require('express');
 var routes = require('./routes');
@@ -117,6 +111,14 @@ app.get('/', function(req, res){
            }
           );
 
+function getPartialData(partialData){
+    Readings.find({}, {}, {
+        sort: {'time': -1},
+        limit: process.env.SAMPLES
+			});
+    }
+            
+
 io.sockets.on('connection', function(socket) {
 	console.log('A new user connected!');
 	Readings.find({}, {}, {
@@ -126,6 +128,8 @@ io.sockets.on('connection', function(socket) {
 		limit: process.env.SAMPLES
 	}, function(err, readings) {
 		socket.emit('readingsData', readings);
+        socket.broadcast.emit('sampleSetting', process.env.SAMPLES);
+        socket.broadcast.emit('refreshSetting', process.env.REFRESHINT);
 		console.log('Initial data over to browser.');
 	});
 	socket.on('sampleInput', function(sampleInputSetting) {
@@ -157,7 +161,3 @@ server.listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
 });
 
-//Start up the server!
-//http.createServer(app).listen(app.get('port'), function(){
-//  console.log('Express server listening on port ' + app.get('port'));
-//});

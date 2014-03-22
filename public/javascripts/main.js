@@ -2,7 +2,8 @@ var socket = io.connect();
 
 $(document).ready(function() {
     console.log('Doc loaded');
-    
+//    var logger = document.getElementById('logger');
+
      $('#submitBtn').click(function() {
 			var sampleInput = document.getElementById("dataSampleInput").value;
 			console.log(sampleInput);
@@ -22,7 +23,9 @@ $(document).ready(function() {
     });
     
     socket.on('readingsData', function(readingsData) {
-        console.log("Socket Connected");
+        console.log("Server Connected");
+        $('#logger').text('Server connected.');
+        $('#logger').css('color', 'green');
         console.log('refresh rate set to:  ' + document.getElementById("refreshTimeInput").value);
 		console.log(readingsData);
 		var temp_data = [];
@@ -53,5 +56,10 @@ $(document).ready(function() {
 				position: "right"
 			}]
 		});
+          socket.on('disconnect',function() {
+        // visually disconnect
+             $('#logger').text('Server disconnected.');
+             $('#logger').css('color', 'red');
+          });
 	});
 });
