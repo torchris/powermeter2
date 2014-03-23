@@ -9,9 +9,7 @@ var Engine = require('tingodb');
 var mongoose = require('mongoose');
 var request = require("request");
 var app = express();
-
 var server = require('http').createServer(app);
-
 
 //Initialize Mongoose with Tingo
 var db = mongoose.connect('tingodb://readingsdb');
@@ -22,9 +20,9 @@ var temp;
 var readings;
 
 //Set environment variables for defaults
-process.env.SAMPLES = '25';
+process.env.SAMPLES = '50';
 console.log('Samples = ' + process.env.SAMPLES);
-process.env.REFRESHINT = '60';
+process.env.REFRESHINT = '180';
 console.log('Refresh = ' + process.env.REFRESHINT);
 
 //Mongoose connects to database
@@ -111,13 +109,6 @@ app.get('/', function(req, res){
            }
           );
 
-function getPartialData(partialData){
-    Readings.find({}, {}, {
-        sort: {'time': -1},
-        limit: process.env.SAMPLES
-			});
-    }
-            
 
 io.sockets.on('connection', function(socket) {
 	console.log('A new user connected!');
@@ -127,7 +118,7 @@ io.sockets.on('connection', function(socket) {
 		},
 		limit: process.env.SAMPLES
 	}, function(err, readings) {
-		socket.emit('readingsData', readings);
+		socket.broadcast.emit('readingsData', readings);
         socket.broadcast.emit('sampleSetting', process.env.SAMPLES);
         socket.broadcast.emit('refreshSetting', process.env.REFRESHINT);
 		console.log('Initial data over to browser.');
@@ -143,6 +134,15 @@ io.sockets.on('connection', function(socket) {
 		process.env.REFRESHINT = refreshInputSetting;
         socket.broadcast.emit('refreshSetting', refreshInputSetting);
         console.log('Sending refresh rate back out');
+        Readings.find({}, {}, {
+        sort: {
+			'time': -1
+		},
+		limit: process.env.SAMPLES
+        }, function(err, readings) {
+		socket.broadcast.emit('readingsData', readings);
+        socket.emit('readingsData', readings);
+        });
 	});
     setInterval(function() {
 			Readings.find({}, {}, {
