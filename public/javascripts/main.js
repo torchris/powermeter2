@@ -87,6 +87,8 @@ $(document).ready(function() {
 			// visually disconnect
 			$('#logger').text('Offline');
 			$('#logger').css('color', 'red');
+            $('#DigiStatus').text('Offline');
+            $('#DigiStatus').css('color', 'red');
 		});
 	});
 
