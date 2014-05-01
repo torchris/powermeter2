@@ -1,12 +1,34 @@
 extends layout
 
 block content    
+  #status
+    h2 System Status
+    table
+      tr
+        td
+          b DigiX:
+        td
+          #DigiStatus
+      tr
+        td 
+          b BeagleBone:
+        td
+          #logger 
+
+    h2 Settings
+    p Data to graph: 
+       input#dataSampleInput(value= '#{sampleNum}', type='text')
+    p Time between refresh (sec)
+       input#refreshTimeInput(value= '#{refreshRate}', type='text')
+
+    button#submitBtn Submit
+
+  #content
     h1= title
-    #logger
-    h2 Graph over time
-    br
+
+    #legendholder(style='margin-left: 110px;')
     #placeholder(style='width:700px;height:300px')
-    
+
     h2 Current Readings
     #tablediv
       table
@@ -15,9 +37,11 @@ block content
            td 
              b Timestamp
            td
-             b Temperature
+             b Outside Temp
            td
              b Power usage
+           td
+             b DigiX Temp
          tbody
            tr
              td
@@ -26,11 +50,5 @@ block content
                #currTemp
              td
                #currUsage
-    h2 Settings
-    p Data samples to graph: 
-       input#dataSampleInput(value= '#{sampleNum}', type='text')
-    p Time between refreshes (seconds)
-       input#refreshTimeInput(value= '#{refreshRate}', type='text')
-    br
-    button#submitBtn Submit
-
+             td
+               #currDigiX

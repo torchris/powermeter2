@@ -18,6 +18,8 @@ var db = mongoose.connect('tingodb://readingsdb');
 var usage;
 var temp;
 var readings;
+var tempDigiX;
+var DigiXAvailable;
 
 //Set environment variables for defaults
 process.env.SAMPLES = '50';
@@ -26,12 +28,13 @@ process.env.REFRESHINT = '180';
 console.log('Refresh = ' + process.env.REFRESHINT);
 
 //Mongoose connects to database
-mongoose.connect('tingodb://readingsdb', function (err){
-    if (!err) {
-        console.log('connected to databse');
-    } else {
-        throw err;
-    }
+mongoose.connect('tingodb://readingsdb', function(err) {
+	if (!err) {
+		console.log('connected to databse');
+	}
+	else {
+		throw err;
+	}
 });
 
 //Set up schema for database
@@ -39,45 +42,23 @@ var Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 
 var ReadingsSchema = new Schema({
-  time: { type : Date, default: Date.now },
-    usage2: Number,
-    temp2: Number
-    });
+	time: {
+		type: Date,
+	default:
+		Date.now
+	},
+	usage2: Number,
+	temp2: Number,
+    DigiTemp: Number
+});
 
 var Readings = mongoose.model('Readings', ReadingsSchema);
 
 //Do the simple screen scrape and pop the results into the database.
 //Rinse and repeat according to the environment variable for refresh rate
-function getData (){
-    request({uri: "http://192.168.1.33/pcmconfig.htm"}, function (error, response, body){
-        if (!error && response.statusCode == 200) {
-            var n = body.search("Present Demand");
-           usage = body.substr((n+44),5);
-           usage = usage.trim();
-           console.log(usage);
-           var n2 = body.search("Sensor Temp");
-           temp = body.substr((n2+40),3);
-           temp = temp.trim();
-           temp = temp - 2;
-           console.log(temp);
-           var readingInfo = new Readings({
-               temp2: temp,
-               usage2: usage
-            });
-        readingInfo.save(function(err, readingInfo){
-              if (err) return console.error(err);
-            console.dir(readingInfo);
-            });
-        setTimeout(getData,(process.env.REFRESHINT * 1000));
-    }});
-}
-
-//run the above function
-getData();
 
 //Below are all set by default in Express
 //var app = express();
-
 // all environments
 //app.set('port', process.env.PORT || 3008);
 app.set('views', path.join(__dirname, 'views'));
@@ -96,68 +77,120 @@ io.set('log level', 1);
 
 // development only
 if ('development' == app.get('env')) {
-  app.use(express.errorHandler());
+	app.use(express.errorHandler());
 }
 
 //This serves up the page and renders the variables into the Jade template engine.
-app.get('/', function(req, res){
-      res.render('index', 
-        { title: 'Power Usage and Temp from PowerCost Monitor',
-          refreshRate: process.env.REFRESHINT,
-          sampleNum: process.env.SAMPLES
-              });
-           }
-          );
-
+app.get('/', function(req, res) {
+	res.render('index', {
+		title: 'Power Usage and Indoor Outdoor Temperature',
+		refreshRate: process.env.REFRESHINT,
+		sampleNum: process.env.SAMPLES
+	});
+});
 
 io.sockets.on('connection', function(socket) {
-	console.log('A new user connected!');
-	Readings.find({}, {}, {
-		sort: {
-			'time': -1
-		},
-		limit: process.env.SAMPLES
-	}, function(err, readings) {
-		socket.broadcast.emit('readingsData', readings);
-        socket.broadcast.emit('sampleSetting', process.env.SAMPLES);
-        socket.broadcast.emit('refreshSetting', process.env.REFRESHINT);
-		console.log('Initial data over to browser.');
-	});
+     console.log('A new user connected!');
+    setInterval(function() {
+		Readings.find({}, {}, {
+			sort: {
+				'time': -1
+			},
+			limit: process.env.SAMPLES
+		}, function(err, readings) {
+			socket.broadcast.emit('readingsData', readings);
+			console.log(process.env.SAMPLES + ' readings sent over');
+            console.log('DigiX Status sent over socket = ' + DigiXAvailable);
+            socket.broadcast.emit('digiXStatus', DigiXAvailable);
+		});
+	}, (process.env.REFRESHINT * 1000));
+
+//	Readings.find({}, {}, {
+//		sort: {
+//			'time': -1
+//		},
+//		limit: process.env.SAMPLES
+//	}, function(err, readings) {
+//		socket.broadcast.emit('readingsData', readings);
+//		socket.broadcast.emit('sampleSetting', process.env.SAMPLES);
+//		socket.broadcast.emit('refreshSetting', process.env.REFRESHINT);
+//        socket.broadcast.emit('digiXStatus', DigiXAvailable);
+//		console.log('Initial data over to browser.');
+//	});
 	socket.on('sampleInput', function(sampleInputSetting) {
 		console.log('setting data = ' + sampleInputSetting);
 		process.env.SAMPLES = sampleInputSetting;
-        socket.broadcast.emit('sampleSetting', sampleInputSetting);
-        console.log('Sending sample rate back out');
+		socket.broadcast.emit('sampleSetting', sampleInputSetting);
+		console.log('Sending sample rate back out');
 	});
 	socket.on('refreshInput', function(refreshInputSetting) {
 		console.log('setting data = ' + refreshInputSetting);
 		process.env.REFRESHINT = refreshInputSetting;
-        socket.broadcast.emit('refreshSetting', refreshInputSetting);
-        console.log('Sending refresh rate back out');
-        Readings.find({}, {}, {
-        sort: {
-			'time': -1
-		},
-		limit: process.env.SAMPLES
-        }, function(err, readings) {
-		socket.broadcast.emit('readingsData', readings);
-        socket.emit('readingsData', readings);
-        });
+		socket.broadcast.emit('refreshSetting', refreshInputSetting);
+		console.log('Sending refresh rate back out');
+		Readings.find({}, {}, {
+			sort: {
+				'time': -1
+			},
+			limit: process.env.SAMPLES
+		}, function(err, readings) {
+			socket.broadcast.emit('readingsData', readings);
+			socket.emit('readingsData', readings);
+		});
 	});
-    setInterval(function() {
-			Readings.find({}, {}, {
-				sort: {
-					'time': -1
-				},
-				limit: process.env.SAMPLES
-			}, function(err, readings) {
-				socket.broadcast.emit('readingsData', readings);
-				console.log(process.env.SAMPLES + ' readings sent over');
-			});
-		}, (process.env.REFRESHINT * 1000));
-    });
 
-server.listen(app.get('port'), function(){
-  console.log('Express server listening on port ' + app.get('port'));
 });
 
+function getData() {
+    request({
+    	uri: "http://192.168.1.33/pcmconfig.htm"
+	}, function(error, response, body) {
+		if (!error && response.statusCode == 200) {
+			var n = body.search("Present Demand");
+			usage = body.substr((n + 44), 5);
+			usage = usage.trim();
+			console.log("Power Usage from PowerCost" + usage);
+			var n2 = body.search("Sensor Temp");
+			temp = body.substr((n2 + 40), 3);
+			temp = temp.trim();
+			temp = temp - 2;
+			console.log("Temp from PowerCost:" + temp);
+		}
+	});
+	request({
+		uri: "http://192.168.1.7:3010/temp"
+	}, function(error, response, body) {
+		if (error) {
+			//If there is an error or the DigiX is unreachable, set the value to an error.
+			console.log("Error: DigiX not available");
+			tempDigiX = 19.99;
+            DigiXAvailable = "FALSE";
+            console.log("DigiX status: " + DigiXAvailable);
+		}
+		else if (!error && response.statusCode == 200) {
+			var n = body.search("TEMP:");
+			tempDigiX = body.substr((n + 6), 5);
+			tempDigiX = tempDigiX.trim();
+			console.log("Current temp reading on DigiX: " + tempDigiX);
+            DigiXAvailable = "TRUE";
+            console.log("DigiX status: " + DigiXAvailable);
+		}
+	});
+	var readingInfo = new Readings({
+		temp2: temp,
+		usage2: usage,
+        DigiTemp: tempDigiX
+	});
+	readingInfo.save(function(err, readingInfo) {
+		if (err) return console.error(err);
+		console.dir(readingInfo);
+	});
+    setTimeout(getData, (process.env.REFRESHINT * 1000));
+}
+
+//run the above function
+getData();
+
+server.listen(app.get('port'), function() {
+	console.log('Express server listening on port ' + app.get('port'));
+});

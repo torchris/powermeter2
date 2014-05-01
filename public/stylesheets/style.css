@@ -17,3 +17,12 @@ td
 padding:6px;
 }
 
+#status {
+  position: absolute;
+  left: 0;
+  width: 15em;
+}
+
+#content {
+  margin-left: 15em;
+}
