@@ -54,13 +54,6 @@ var ReadingsSchema = new Schema({
 
 var Readings = mongoose.model('Readings', ReadingsSchema);
 
-//Do the simple screen scrape and pop the results into the database.
-//Rinse and repeat according to the environment variable for refresh rate
-
-//Below are all set by default in Express
-//var app = express();
-// all environments
-//app.set('port', process.env.PORT || 3008);
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 app.use(express.favicon());
@@ -73,7 +66,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 var io = require('socket.io').listen(server);
 app.set('port', process.env.PORT || 3008);
-io.set('log level', 1);
+io.set('log level', 2);
 
 // development only
 if ('development' == app.get('env')) {
@@ -90,7 +83,18 @@ app.get('/', function(req, res) {
 });
 
 io.sockets.on('connection', function(socket) {
-     console.log('A new user connected!');
+    console.log('A new user connected!');
+    Readings.find({}, {}, {
+    sort: {
+        'time': -1
+	},
+			limit: process.env.SAMPLES
+}, function(err, readings) {
+			socket.broadcast.emit('readingsData', readings);
+			console.log(process.env.SAMPLES + ' readings sent over');
+            console.log('DigiX Status sent over socket = ' + DigiXAvailable);
+            socket.broadcast.emit('digiXStatus', DigiXAvailable);
+		});
     setInterval(function() {
 		Readings.find({}, {}, {
 			sort: {
@@ -104,19 +108,6 @@ io.sockets.on('connection', function(socket) {
             socket.broadcast.emit('digiXStatus', DigiXAvailable);
 		});
 	}, (process.env.REFRESHINT * 1000));
-
-//	Readings.find({}, {}, {
-//		sort: {
-//			'time': -1
-//		},
-//		limit: process.env.SAMPLES
-//	}, function(err, readings) {
-//		socket.broadcast.emit('readingsData', readings);
-//		socket.broadcast.emit('sampleSetting', process.env.SAMPLES);
-//		socket.broadcast.emit('refreshSetting', process.env.REFRESHINT);
-//        socket.broadcast.emit('digiXStatus', DigiXAvailable);
-//		console.log('Initial data over to browser.');
-//	});
 	socket.on('sampleInput', function(sampleInputSetting) {
 		console.log('setting data = ' + sampleInputSetting);
 		process.env.SAMPLES = sampleInputSetting;
@@ -138,12 +129,11 @@ io.sockets.on('connection', function(socket) {
 			socket.emit('readingsData', readings);
 		});
 	});
-
 });
 
 function getData() {
     request({
-    	uri: "http://192.168.1.33/pcmconfig.htm"
+    uri: "http://192.168.1.33/pcmconfig.htm"
 	}, function(error, response, body) {
 		if (!error && response.statusCode == 200) {
 			var n = body.search("Present Demand");
@@ -185,11 +175,11 @@ function getData() {
 		if (err) return console.error(err);
 		console.dir(readingInfo);
 	});
-    setTimeout(getData, (process.env.REFRESHINT * 1000));
+
 }
 
 //run the above function
-getData();
+setInterval(getData, (process.env.REFRESHINT * 1000));
 
 server.listen(app.get('port'), function() {
 	console.log('Express server listening on port ' + app.get('port'));

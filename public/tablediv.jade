@@ -1,0 +1,15 @@
+      table
+       thead
+         tr 
+           td 
+             b Timestamp
+           td
+             b Temperature
+           td
+             b Power usage
+         tbody
+             each reading in readings
+               tr
+                 td #{reading.time}
+                 td #{reading.temp2}
+                 td #{reading.usage2}
