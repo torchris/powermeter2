@@ -5,15 +5,25 @@ block content
     h2 System Status
     table
       tr
+        td 
+          b BeagleBone:
+        td
+          #logger 
+      tr
         td
           b DigiX:
         td
           #DigiStatus
       tr
-        td 
-          b BeagleBone:
         td
-          #logger 
+          b Remote 1:
+        td
+          #DigiRem1Status
+      tr
+        td
+          b Remote 2:
+        td
+          #DigiRem2Status
 
     h2 Settings
     p Data to graph: 
@@ -27,7 +37,7 @@ block content
     h1= title
 
     #legendholder(style='margin-left: 110px;')
-    #placeholder(style='width:700px;height:300px')
+    #placeholder(style='width:800px;height:400px')
 
     h2 Current Readings
     #tablediv
@@ -42,6 +52,10 @@ block content
              b Power usage
            td
              b DigiX Temp
+           td
+             b Rem 1 Temp
+           td
+             b Rem 2 Temp
          tbody
            tr
              td
@@ -52,3 +66,7 @@ block content
                #currUsage
              td
                #currDigiX
+             td
+               #currDigiXRem1Temp
+             td
+               #currDigiXRem2Temp

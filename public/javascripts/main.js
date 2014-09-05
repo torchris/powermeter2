@@ -32,6 +32,32 @@ $(document).ready(function() {
             $('#DigiStatus').css('color', 'green');
             }
 	});    
+    
+    socket.on('digiXRem1Status', function(digiXRem1StatusData) {
+    	console.log('Remote 1 Status received: ' + digiXRem1StatusData);
+        if (digiXRem1StatusData == "FALSE"){
+            $('#DigiRem1Status').text('Offline');
+            $('#DigiRem1Status').css('color', 'red');
+            } else {
+            console.log("DigiX online");
+            $('#DigiRem1Status').text('Online');
+            $('#DigiRem1Status').css('color', 'green');
+            }
+	}); 
+ 
+     socket.on('digiXRem2Status', function(digiXRem2StatusData) {
+        console.log('Remote 2 Status received: ' + digiXRem2StatusData);
+        if (digiXRem2StatusData == "FALSE"){
+            $('#DigiRem2Status').text('Offline');
+            $('#DigiRem2Status').css('color', 'red');
+            } else {
+            console.log("DigiX online");
+            $('#DigiRem2Status').text('Online');
+            $('#DigiRem2Status').css('color', 'green');
+            }
+	}); 
+ 
+    
 
 	socket.on('readingsData', function(readingsData) {
 		console.log("Server Connected");
@@ -42,16 +68,22 @@ $(document).ready(function() {
 		var temp_data = [];
 		var usage_data = [];
         var digiTemp_data = [];
+        var digiRemote1temp_data = [];
+        var digiRemote2temp_data = [];        
 		var dateTime = new Date(readingsData[0].time);
 		$('#currTime').html(dateTime);
 		$('#currTemp').html(readingsData[0].temp2);
 		$('#currUsage').html(readingsData[0].usage2);
         $('#currDigiX').html(readingsData[0].DigiTemp);
+        $('#currDigiXRem1Temp').html(readingsData[0].DigiXRem1Temp);
+        $('#currDigiXRem2Temp').html(readingsData[0].DigiXRem2Temp);        
 		console.log('length of readingData = ' + readingsData.length);
 		for (var i = 0; i < readingsData.length; i++) {
 			temp_data.push([new Date(readingsData[i].time), readingsData[i].temp2]);
 			usage_data.push([new Date(readingsData[i].time), readingsData[i].usage2]);
             digiTemp_data.push([new Date(readingsData[i].time), readingsData[i].DigiTemp]);
+            digiRemote1temp_data.push([new Date(readingsData[i].time), readingsData[i].DigiXRem1Temp]);
+            digiRemote2temp_data.push([new Date(readingsData[i].time), readingsData[i].DigiXRem2Temp]);
 		}
 		$.plot($("#placeholder"), [{
 			label: "Temperature (C)",
@@ -61,8 +93,16 @@ $(document).ready(function() {
 			data: usage_data,
 			yaxis: 2
 		}, {
-			label: "DigiX Temperature (C)",
+			label: "DigiX Temp (C)",
 			data: digiTemp_data,
+			yaxis: 1
+		}, {
+            label: "DigiX Remote 1 temp (C)",
+			data: digiRemote1temp_data,
+			yaxis: 1
+		}, {
+            label: "DigiX Remote 2 temp (C)",
+            data: digiRemote2temp_data,
 			yaxis: 1
 		}], {
 			xaxes: [{

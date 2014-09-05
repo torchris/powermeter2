@@ -8,8 +8,11 @@ var tungus = require('tungus');
 var Engine = require('tingodb');
 var mongoose = require('mongoose');
 var request = require("request");
+var NanoTimer = require('nanotimer');
 var app = express();
 var server = require('http').createServer(app);
+var timerGetData = new NanoTimer();
+var timerSendSockets = new NanoTimer();
 
 //Initialize Mongoose with Tingo
 var db = mongoose.connect('tingodb://readingsdb');
@@ -19,12 +22,12 @@ var usage;
 var temp;
 var readings;
 var tempDigiX;
-var DigiXAvailable;
+var DigiXAvailable, DigiXRemote1Temp, DigiXRemote2Temp, DigiXRemote1Available, DigiXRemote2Available;
 
 //Set environment variables for defaults
 process.env.SAMPLES = '50';
 console.log('Samples = ' + process.env.SAMPLES);
-process.env.REFRESHINT = '180';
+process.env.REFRESHINT = '90';
 console.log('Refresh = ' + process.env.REFRESHINT);
 
 //Mongoose connects to database
@@ -49,7 +52,9 @@ var ReadingsSchema = new Schema({
 	},
 	usage2: Number,
 	temp2: Number,
-    DigiTemp: Number
+    DigiTemp: Number,
+    DigiXRem1Temp: Number,
+    DigiXRem2Temp: Number
 });
 
 var Readings = mongoose.model('Readings', ReadingsSchema);
@@ -95,8 +100,8 @@ io.sockets.on('connection', function(socket) {
             console.log('DigiX Status sent over socket = ' + DigiXAvailable);
             socket.broadcast.emit('digiXStatus', DigiXAvailable);
 		});
-    setInterval(function() {
-		Readings.find({}, {}, {
+        timerSendSockets.setInterval(function(){
+    		Readings.find({}, {}, {
 			sort: {
 				'time': -1
 			},
@@ -106,8 +111,17 @@ io.sockets.on('connection', function(socket) {
 			console.log(process.env.SAMPLES + ' readings sent over');
             console.log('DigiX Status sent over socket = ' + DigiXAvailable);
             socket.broadcast.emit('digiXStatus', DigiXAvailable);
+            console.log('Remote 1 status sent over socket = ' + DigiXRemote1Available);
+            socket.broadcast.emit('digiXRem1Status', DigiXRemote1Available);
+            console.log('Remote 2 status sent over socket = ' + DigiXRemote2Available);
+            socket.broadcast.emit('digiXRem2Status', DigiXRemote2Available);
 		});
-	}, (process.env.REFRESHINT * 1000));
+        console.log('Interval inside sockets set to: ' + process.env.REFRESHINT); 
+    	}, '', process.env.REFRESHINT + 's', function(err){
+        if(err) {
+        console.log('This fucked up!');
+        }
+        });
 	socket.on('sampleInput', function(sampleInputSetting) {
 		console.log('setting data = ' + sampleInputSetting);
 		process.env.SAMPLES = sampleInputSetting;
@@ -129,6 +143,7 @@ io.sockets.on('connection', function(socket) {
 			socket.emit('readingsData', readings);
 		});
 	});
+   
 });
 
 function getData() {
@@ -148,38 +163,69 @@ function getData() {
 		}
 	});
 	request({
-		uri: "http://192.168.1.7:3010/temp"
+		uri: "http://192.168.1.6:3010/temp"
 	}, function(error, response, body) {
 		if (error) {
 			//If there is an error or the DigiX is unreachable, set the value to an error.
 			console.log("Error: DigiX not available");
-			tempDigiX = 19.99;
+//			tempDigiX = 19.99;
             DigiXAvailable = "FALSE";
+            DigiXRemote1Available = "FALSE";
+            DigiXRemote2Available = "FALSE";            
             console.log("DigiX status: " + DigiXAvailable);
 		}
 		else if (!error && response.statusCode == 200) {
-			var n = body.search("TEMP:");
-			tempDigiX = body.substr((n + 6), 5);
+			var n = body.search("DIGIXTEMP:");
+			tempDigiX = body.substr((n + 11), 5);
 			tempDigiX = tempDigiX.trim();
 			console.log("Current temp reading on DigiX: " + tempDigiX);
             DigiXAvailable = "TRUE";
             console.log("DigiX status: " + DigiXAvailable);
+            var r1 = body.search("REM1TEMP:");
+            DigiXRemote1Temp = body.substr((r1 +10), 5);
+            DigiXRemote1Temp = DigiXRemote1Temp.trim();
+            console.log("Remote 1 temp: " + DigiXRemote1Temp);
+            if (DigiXRemote1Temp == "OFFLI") {
+                DigiXRemote1Available = "FALSE";
+                console.log("DigiX Remote 1 Offline");
+            } else {
+                 DigiXRemote1Available = "TRUE";
+                console.log("DigiX Remote 1 Online");               
+            }
+            var r2 = body.search("REM2TEMP:");
+            DigiXRemote2Temp = body.substr((r2 +10), 5);
+            DigiXRemote2Temp = DigiXRemote2Temp.trim();
+            console.log("Remote 2 temp: " + DigiXRemote2Temp);
+                        if (DigiXRemote2Temp == "OFFLI") {
+                DigiXRemote2Available = "FALSE";
+                console.log("DigiX Remote 2 Offline");
+            } else {
+                 DigiXRemote2Available = "TRUE";
+                console.log("DigiX Remote 1 Online");               
+            }
+            
 		}
 	});
 	var readingInfo = new Readings({
 		temp2: temp,
 		usage2: usage,
-        DigiTemp: tempDigiX
+        DigiTemp: tempDigiX,
+        DigiXRem1Temp: DigiXRemote1Temp,
+        DigiXRem2Temp: DigiXRemote2Temp
 	});
 	readingInfo.save(function(err, readingInfo) {
 		if (err) return console.error(err);
 		console.dir(readingInfo);
 	});
-
 }
 
 //run the above function
-setInterval(getData, (process.env.REFRESHINT * 1000));
+
+timerGetData.setInterval(getData, '', process.env.REFRESHINT + 's', function(err){
+    if(err) {
+        console.log('This fucked up!');
+    }
+});
 
 server.listen(app.get('port'), function() {
 	console.log('Express server listening on port ' + app.get('port'));
