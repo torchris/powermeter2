@@ -8,7 +8,7 @@
   "dependencies": {
     "express": "3.4.7",
     "jade": "*",
-    "jquery": "~2.1.0",
+    "jquery": "3.4.0",
     "jsdom": "~0.10.1",
     "flot": "~0.8.0-alpha",
     "JSON": "~1.0.0",
