@@ -9,7 +9,7 @@
     "express": ">=3.11.0",
     "jade": "*",
     "jquery": ">=3.5.0",
-    "jsdom": "~0.10.1",
+    "jsdom": "16.5.0",
     "flot": "~0.8.0-alpha",
     "JSON": "10.0.0",
     "socket.io": "*"
